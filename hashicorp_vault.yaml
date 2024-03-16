@@ -1,0 +1,78 @@
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  labels:
+    hashicorp-vault: server
+  name: vault
+  namespace: argocd
+spec:
+  generators:
+    - list:
+        elements:
+          - cluster: in-cluster
+  template:
+    metadata:
+      labels:
+        hashicorp-vault: server
+      name: "vault-{{cluster}}"
+      namespace: argocd
+    spec:
+      project: default
+      destination:
+        namespace: vault
+        name: "{{cluster}}"
+      source:
+        repoURL: https://helm.releases.hashicorp.com
+        chart: vault
+        targetRevision: 0.27.0
+        helm:
+          releaseName: vault
+          values: |
+            csi:
+              enabled: true
+            ui:
+              enabled: true
+            injector:
+              enabled: true
+            server:
+              standalone:
+                config: |
+                  ui = true
+
+                  listener "tcp" {
+                    tls_disable = 1
+                    address = "[::]:8200"
+                    cluster_address = "[::]:8201"
+                    telemetry {
+                    unauthenticated_metrics_access = "true"
+                    }
+                  }
+                  storage "file" {
+                    path = "/vault/data"
+                  }
+                  telemetry {
+                  prometheus_retention_time = "30s"
+                  disable_hostname = true
+                  }
+              dataStorage:
+                enabled: true
+                storageClass: nfs
+              auditStorage:
+                enabled: true
+                storageClass: nfs
+              ingress:
+                enabled: false
+                ingressClassName: nginx
+                hosts:
+                  - host: vault.local
+                    paths:
+                      - /
+      syncPolicy:
+        automated:
+          selfHeal: true
+        syncOptions:
+          - PruneLast=false
+          - CreateNamespace=true
+          - ApplyOutOfSyncOnly=false
+          - Validate=false
+      revisionHistoryLimit: 2

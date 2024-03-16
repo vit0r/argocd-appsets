@@ -1,0 +1,36 @@
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  labels:
+    prometheus-node-exporter: server
+  name: prometheus-node-exporter
+  namespace: argocd
+spec:
+  generators:
+    - list:
+        elements:
+          - cluster: in-cluster
+  template:
+    metadata:
+      labels:
+        prometheus-node-exporter: server
+      name: "prometheus-node-exporter-{{cluster}}"
+      namespace: argocd
+    spec:
+      destination:
+        namespace: monitoring
+        server: in-cluster
+      project: default
+      source:
+        repoURL: https://prometheus-community.github.io/helm-charts
+        chart: prometheus-node-exporter
+        targetRevision: 4.25.0
+        helm:
+          releaseName: prometheus-node-exporter
+      syncPolicy:
+        syncOptions:
+          - PruneLast=false
+          - CreateNamespace=true
+          - ApplyOutOfSyncOnly=false
+          - Validate=false
+      revisionHistoryLimit: 2

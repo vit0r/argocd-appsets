@@ -1,0 +1,37 @@
+kind: ApplicationSet
+metadata:
+  labels:
+    metallb: server
+  name: metallb
+  namespace: argocd
+spec:
+  generators:
+    - list:
+        elements:
+          - cluster: in-cluster
+  template:
+    metadata:
+      labels:
+        metallb: server
+      name: "metallb-{{cluster}}"
+      namespace: argocd
+    spec:
+      destination:
+      namespace: metallb-system
+      server: in-cluster
+      project: default
+      source:
+        repoURL: https://metallb.github.io/metallb
+        chart: metallb/metallb
+        targetRevision: 0.13.12
+        helm:
+          releaseName: metallb
+          values: |
+            installCRDs: true
+      syncPolicy:
+        syncOptions:
+          - PruneLast=false
+          - CreateNamespace=true
+          - ApplyOutOfSyncOnly=false
+          - Validate=false
+      revisionHistoryLimit: 2

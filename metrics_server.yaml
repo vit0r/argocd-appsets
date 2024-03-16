@@ -1,0 +1,36 @@
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  labels:
+    metrics-server: server
+  name: metrics-server
+  namespace: argocd
+spec:
+  generators:
+    - list:
+        elements:
+          - cluster: in-cluster
+  template:
+    metadata:
+      labels:
+        metrics-server: server
+      name: "metrics-server-{{cluster}}"
+      namespace: argocd
+    spec:
+      destination:
+        namespace: monitoring
+        name: "{{cluster}}"
+      project: default
+      source:
+        repoURL: https://kubernetes-sigs.github.io/metrics-server/
+        chart: metrics-server
+        targetRevision: 3.12.0
+        helm:
+          releaseName: metrics-server
+  syncPolicy:
+    syncOptions:
+      - PruneLast=false
+      - CreateNamespace=true
+      - ApplyOutOfSyncOnly=false
+      - Validate=false
+  revisionHistoryLimit: 2

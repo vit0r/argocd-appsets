@@ -1,0 +1,42 @@
+kind: ApplicationSet
+metadata:
+  labels:
+    ingress-nginx: server
+  name: ingress-nginx
+  namespace: argocd
+spec:
+  generators:
+    - list:
+        elements:
+          - cluster: in-cluster
+  template:
+    metadata:
+      labels:
+        ingress-nginx: server
+      name: "ingress-nginx-{{cluster}}"
+      namespace: argocd
+    spec:
+      destination:
+        namespace: ingress-nginx
+        server: in-cluster
+      project: default
+      source:
+        repoURL: https://kubernetes.github.io/ingress-nginx
+        chart: ingress-nginx
+        targetRevision: 4.4.2
+        helm:
+          releaseName: ingress-nginx
+          values: |
+            controller:
+              config:
+                ssl-redirect: false
+              service:
+                externalTrafficPolicy: "Local"
+                loadBalancerIP: "192.168.100.4"
+      syncPolicy:
+        syncOptions:
+          - PruneLast=false
+          - CreateNamespace=true
+          - ApplyOutOfSyncOnly=false
+          - Validate=false
+      revisionHistoryLimit: 2
